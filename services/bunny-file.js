@@ -16,7 +16,6 @@ var _inherits2 = _interopRequireDefault(require("@babel/runtime/helpers/inherits
 var _possibleConstructorReturn2 = _interopRequireDefault(require("@babel/runtime/helpers/possibleConstructorReturn"));
 var _getPrototypeOf2 = _interopRequireDefault(require("@babel/runtime/helpers/getPrototypeOf"));
 var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
-var _medusa = require("@medusajs/medusa");
 var _medusaInterfaces = require("medusa-interfaces");
 var fs = _interopRequireWildcard(require("fs"));
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function _getRequireWildcardCache(nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
@@ -42,7 +41,7 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
         storagePath: process.env.BUNNY_STORAGE_PATH
       },
       cdn: {
-        pullZoneEndPoint: "https://tasso.b-cdn.net"
+        pullZoneEndPoint: process.env.BUNNY_PULLZONE_ENDPOINT
       }
     });
     if (pluginOptions) {
@@ -57,12 +56,12 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "upload",
     value: function () {
       var _upload = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee(fileData) {
-        var url, readStream, options;
+        var url, readStream, options, uploadedUrl;
         return _regenerator["default"].wrap(function _callee$(_context) {
           while (1) switch (_context.prev = _context.next) {
             case 0:
               _context.prev = 0;
-              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname, "}");
+              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
               readStream = fs.createReadStream(fileData.path);
               options = {
                 method: 'PUT',
@@ -75,18 +74,20 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
               _context.next = 6;
               return fetch(url, options);
             case 6:
+              uploadedUrl = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              console.log(uploadedUrl);
               return _context.abrupt("return", {
-                url: "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname)
+                url: uploadedUrl
               });
-            case 9:
-              _context.prev = 9;
+            case 11:
+              _context.prev = 11;
               _context.t0 = _context["catch"](0);
               throw new Error(_context.t0);
-            case 12:
+            case 14:
             case "end":
               return _context.stop();
           }
-        }, _callee, this, [[0, 9]]);
+        }, _callee, this, [[0, 11]]);
       }));
       function upload(_x) {
         return _upload.apply(this, arguments);
@@ -102,7 +103,7 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
           while (1) switch (_context2.prev = _context2.next) {
             case 0:
               _context2.prev = 0;
-              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.fileKey, "}");
+              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.file_key);
               options = {
                 method: 'DELETE',
                 headers: {
@@ -128,27 +129,9 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
         return _delete2.apply(this, arguments);
       }
       return _delete;
-    }() // async uploadProtected(
-    //     fileData
-    // ): Promise<FileServiceUploadResult> {
-    //     throw new Error("Method not implemented.")
-    // }
-    // async getUploadStreamDescriptor(
-    //     fileData: UploadStreamDescriptorType
-    // ): Promise<FileServiceGetUploadStreamResult> {
-    //     throw new Error("Method not implemented.")
-    // }
-    // async getDownloadStream(
-    //     fileData: GetUploadedFileType
-    // ): Promise<NodeJS.ReadableStream> {
-    //     throw new Error("Method not implemented.")
-    // }
-    // async getPresignedDownloadUrl(
-    //     fileData: GetUploadedFileType
-    // ): Promise<string> {
-    //     throw new Error("Method not implemented.")
-    // }
+    }()
   }]);
   return BunnyFileService;
 }(_medusaInterfaces.FileService);
-exports["default"] = BunnyFileService;
+var _default = BunnyFileService;
+exports["default"] = _default;

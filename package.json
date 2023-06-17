@@ -1,6 +1,6 @@
 {
   "name": "medusa-file-bunny",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "bunny.net file connector for Medusa",
   "author": "Tsvetan Nikolov <live.webscore@gmail.com>",
   "license": "MIT",
@@ -8,11 +8,13 @@
     "ecommerce",
     "medusa",
     "medusa-plugin",
-    "bunny.net"
+    "bunny.net",
+    "medusa-plugin-storage"
   ],
   "scripts": {
     "clean": "cross-env ./node_modules/.bin/rimraf dist",
-    "build": "tsc",
+    "build": "babel src --out-dir . --ignore **/__tests__ --extensions \".ts,.js\"",
+    "prepare": "cross-env NODE_ENV=production npm run build",
     "watch": "babel -w src --out-dir ./dist --ignore '**/__tests__','**/__mocks__'",
     "test": "cross-env jest",
     "start:custom": "cross-env npm run build && node --preserve-symlinks index.js",
@@ -23,6 +25,10 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsvetann/medusa-file-bunny.git"
+  },
   "dependencies": {
     "node-fetch": "^2.6.11"
   },
