@@ -21,9 +21,9 @@
     "dev": "cross-env npm run build && medusa develop",
     "build:admin": "cross-env medusa-admin build"
   },
-  "main": "dist/services/bunny-file.js",
+  "main": "services/bunny-file.js",
   "files": [
-    "dist"
+    "services"
   ],
   "repository": {
     "type": "git",
