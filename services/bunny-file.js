@@ -18,11 +18,26 @@ var _getPrototypeOf2 = _interopRequireDefault(require("@babel/runtime/helpers/ge
 var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
 var _medusaInterfaces = require("medusa-interfaces");
 var fs = _interopRequireWildcard(require("fs"));
+var _stream = _interopRequireDefault(require("stream"));
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function _getRequireWildcardCache(nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || _typeof(obj) !== "object" && typeof obj !== "function") { return { "default": obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj["default"] = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = (0, _getPrototypeOf2["default"])(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = (0, _getPrototypeOf2["default"])(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return (0, _possibleConstructorReturn2["default"])(this, result); }; }
 function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
 var fetch = require('node-fetch');
+var https = require('https');
+function getReadStreamFromCDN(url) {
+  return new Promise(function (resolve, reject) {
+    https.get(url, function (response) {
+      if (response.statusCode !== 200) {
+        reject(new Error("Failed to get file from CDN. Status Code: ".concat(response.statusCode)));
+        return;
+      }
+      resolve(response);
+    }).on('error', function (err) {
+      reject(err);
+    });
+  });
+}
 
 // create medusajs file service which integrates with bunny cdn
 var BunnyFileService = /*#__PURE__*/function (_FileService) {
@@ -129,6 +144,127 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
         return _delete2.apply(this, arguments);
       }
       return _delete;
+    }()
+  }, {
+    key: "getUploadStreamDescriptor",
+    value: function () {
+      var _getUploadStreamDescriptor = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee3(_ref2) {
+        var name, ext, _ref2$isPrivate, isPrivate, filePath, downloadFilePath, pass, options;
+        return _regenerator["default"].wrap(function _callee3$(_context3) {
+          while (1) switch (_context3.prev = _context3.next) {
+            case 0:
+              name = _ref2.name, ext = _ref2.ext, _ref2$isPrivate = _ref2.isPrivate, isPrivate = _ref2$isPrivate === void 0 ? true : _ref2$isPrivate;
+              filePath = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(name, ".").concat(ext);
+              downloadFilePath = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(name, ".").concat(ext);
+              pass = new _stream["default"].PassThrough();
+              options = {
+                method: 'PUT',
+                headers: {
+                  'content-type': 'application/octet-stream',
+                  AccessKey: this.options.storage.apiKey
+                },
+                body: pass
+              };
+              return _context3.abrupt("return", {
+                writeStream: pass,
+                promise: fetch(filePath, options),
+                url: "".concat(downloadFilePath),
+                fileKey: downloadFilePath
+              });
+            case 6:
+            case "end":
+              return _context3.stop();
+          }
+        }, _callee3, this);
+      }));
+      function getUploadStreamDescriptor(_x3) {
+        return _getUploadStreamDescriptor.apply(this, arguments);
+      }
+      return getUploadStreamDescriptor;
+    }()
+  }, {
+    key: "getPresignedDownloadUrl",
+    value: function () {
+      var _getPresignedDownloadUrl = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee4(_ref3) {
+        var fileKey;
+        return _regenerator["default"].wrap(function _callee4$(_context4) {
+          while (1) switch (_context4.prev = _context4.next) {
+            case 0:
+              fileKey = _ref3.fileKey;
+              return _context4.abrupt("return", "".concat(fileKey));
+            case 2:
+            case "end":
+              return _context4.stop();
+          }
+        }, _callee4);
+      }));
+      function getPresignedDownloadUrl(_x4) {
+        return _getPresignedDownloadUrl.apply(this, arguments);
+      }
+      return getPresignedDownloadUrl;
+    }()
+  }, {
+    key: "uploadProtected",
+    value: function () {
+      var _uploadProtected = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee5(fileData) {
+        var filePath, readStream, options, uploadedUrl;
+        return _regenerator["default"].wrap(function _callee5$(_context5) {
+          while (1) switch (_context5.prev = _context5.next) {
+            case 0:
+              // const filePath = `${this.protectedPath}/${fileData.originalname}`
+              filePath = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              readStream = fs.createReadStream(fileData.path);
+              options = {
+                method: 'PUT',
+                headers: {
+                  'content-type': 'application/octet-stream',
+                  AccessKey: this.options.storage.apiKey
+                },
+                body: readStream
+              };
+              _context5.next = 5;
+              return fetch(filePath, options);
+            case 5:
+              uploadedUrl = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              return _context5.abrupt("return", {
+                url: "".concat(uploadedUrl),
+                key: "".concat(uploadedUrl)
+              });
+            case 7:
+            case "end":
+              return _context5.stop();
+          }
+        }, _callee5, this);
+      }));
+      function uploadProtected(_x5) {
+        return _uploadProtected.apply(this, arguments);
+      }
+      return uploadProtected;
+    }()
+  }, {
+    key: "getDownloadStream",
+    value: function () {
+      var _getDownloadStream = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee6(_ref4) {
+        var fileKey, _ref4$isPrivate, isPrivate, readStream;
+        return _regenerator["default"].wrap(function _callee6$(_context6) {
+          while (1) switch (_context6.prev = _context6.next) {
+            case 0:
+              fileKey = _ref4.fileKey, _ref4$isPrivate = _ref4.isPrivate, isPrivate = _ref4$isPrivate === void 0 ? true : _ref4$isPrivate;
+              _context6.next = 3;
+              return getReadStreamFromCDN(fileKey);
+            case 3:
+              readStream = _context6.sent;
+              return _context6.abrupt("return", readStream);
+            case 5:
+            case "end":
+              return _context6.stop();
+          }
+        }, _callee6);
+      }));
+      function getDownloadStream(_x6) {
+        return _getDownloadStream.apply(this, arguments);
+      }
+      return getDownloadStream;
     }()
   }]);
   return BunnyFileService;
