@@ -35,6 +35,8 @@ BUNNY_STORAGE_UPLOAD_ENDPOINT=<YOUR_BUNNY_STORAGE_UPLOAD_ENDPOINT>
 BUNNY_PULLZONE_ENDPOINT=<YOUR_BUNNY_PULLZONE_ENDPOINT>
 ```
 
+`BUNNY_STORAGE_PATH` is optional since version `0.0.5`. If omitted the media will be uploaded in the root directory
+
 3\. In `medusa-config.js` add the following at the end of the `plugins` array:
 
 ```js
@@ -61,10 +63,10 @@ const plugins = [
 
 ## Test the Plugin
 
-1\. Run the following command in the directory of the Medusa backend to run the backend:
-
 ```bash
-npm run start
+yarn install
+yarn test
 ```
 
-2\. Upload an image for a product using the admin dashboard or using [the Admin APIs](https://docs.medusajs.com/api/admin#tag/Upload).
+## Use the upload functinality in medusa
+Upload an image for a product using the admin dashboard or using [the Admin APIs](https://docs.medusajs.com/api/admin#tag/Upload).
