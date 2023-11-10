@@ -54,10 +54,15 @@ const plugins = [
       cdn: {
         pullZoneEndPoint: process.env.BUNNY_PULLZONE_ENDPOINT,
       },
+      uniqueFilename: false
     },
   },
 ]
 ```
+
+## Configuration overview
+
+The `uniqueFilename` setting is a boolean configuration option that dictates the naming convention of uploaded media files. When enabled, it ensures that each uploaded file is saved with a unique filename, reducing the risk of overwriting existing files and improving file management. The default value is false
 
 ---
 

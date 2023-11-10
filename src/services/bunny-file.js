@@ -21,6 +21,9 @@ function getReadStreamFromCDN(url) {
 
 // create medusajs file service which integrates with bunny cdn
 class BunnyFileService extends FileService {
+  // Add a property for storing the unique filename
+  lastUniqueFilename = null;
+
   constructor({ }, pluginOptions) {
     super()
     const config = {
@@ -33,6 +36,7 @@ class BunnyFileService extends FileService {
       cdn: {
         pullZoneEndPoint: process.env.BUNNY_PULLZONE_ENDPOINT,
       },
+      uniqueFilename: false,
     };
     this.options = { ...config, ...pluginOptions };
   }
@@ -44,13 +48,14 @@ class BunnyFileService extends FileService {
     fileData
   ) {
     try {
-      const url = this.constructFileUrl(fileData.originalname);
+      const fileName = this.getUniqueFilename(fileData.originalname);
+      const url = this.constructFileUrl(fileName);
       const readStream = fs.createReadStream(fileData.path);
 
       const response = await this.fetchWithStream(url, readStream, 'PUT');
       this.handleFetchResponse(response);
 
-      const uploadedUrl = this.constructCdnUrl(fileData.originalname);
+      const uploadedUrl = this.constructCdnUrl(fileName);
       return { url: uploadedUrl };
     } catch (error) {
       throw new Error(error)
@@ -66,7 +71,6 @@ class BunnyFileService extends FileService {
       const response = await fetch(url, this.createFetchOptions('DELETE'));
       this.handleFetchResponse(response);
     } catch (error) {
-      // console.error(`Delete error: ${error}`);
       throw error;
     }
   }
@@ -133,10 +137,9 @@ class BunnyFileService extends FileService {
     const storagePath = this.options.storage.storagePath
       ? `${this.options.storage.storagePath}/`
       : '';
-  
+
     return `${this.options.cdn.pullZoneEndPoint}/${storagePath}${fileName}`;
   }
-  
 
   createFetchOptions(method, body = null) {
     return {
@@ -159,6 +162,14 @@ class BunnyFileService extends FileService {
       throw new Error(`Fetch error: ${response.statusText}`);
     }
     return response;
+  }
+
+  getUniqueFilename(fileName) {
+    if (this.options.uniqueFilename) {
+      this.uniqueFilename = `${Date.now()}-${fileName}`;
+      return this.uniqueFilename;
+    }
+    return fileName;
   }
 }
 

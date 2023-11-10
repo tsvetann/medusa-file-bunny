@@ -8,13 +8,14 @@ Object.defineProperty(exports, "__esModule", {
 exports["default"] = void 0;
 var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
 var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
-var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
 var _objectDestructuringEmpty2 = _interopRequireDefault(require("@babel/runtime/helpers/objectDestructuringEmpty"));
 var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
 var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+var _assertThisInitialized2 = _interopRequireDefault(require("@babel/runtime/helpers/assertThisInitialized"));
 var _inherits2 = _interopRequireDefault(require("@babel/runtime/helpers/inherits"));
 var _possibleConstructorReturn2 = _interopRequireDefault(require("@babel/runtime/helpers/possibleConstructorReturn"));
 var _getPrototypeOf2 = _interopRequireDefault(require("@babel/runtime/helpers/getPrototypeOf"));
+var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
 var _medusaInterfaces = require("medusa-interfaces");
 var fs = _interopRequireWildcard(require("fs"));
 var _stream = _interopRequireDefault(require("stream"));
@@ -49,6 +50,8 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     (0, _objectDestructuringEmpty2["default"])(_ref);
     (0, _classCallCheck2["default"])(this, BunnyFileService);
     _this = _super.call(this);
+    // Add a property for storing the unique filename
+    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "lastUniqueFilename", null);
     var config = {
       storage: {
         storageUploadEndPoint: process.env.BUNNY_STORAGE_UPLOAD_ENDPOINT,
@@ -58,7 +61,8 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
       },
       cdn: {
         pullZoneEndPoint: process.env.BUNNY_PULLZONE_ENDPOINT
-      }
+      },
+      uniqueFilename: false
     };
     _this.options = _objectSpread(_objectSpread({}, config), pluginOptions);
     return _this;
@@ -71,31 +75,32 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "upload",
     value: function () {
       var _upload = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee(fileData) {
-        var url, readStream, response, uploadedUrl;
+        var fileName, url, readStream, response, uploadedUrl;
         return _regenerator["default"].wrap(function _callee$(_context) {
           while (1) switch (_context.prev = _context.next) {
             case 0:
               _context.prev = 0;
-              url = this.constructFileUrl(fileData.originalname);
+              fileName = this.getUniqueFilename(fileData.originalname);
+              url = this.constructFileUrl(fileName);
               readStream = fs.createReadStream(fileData.path);
-              _context.next = 5;
+              _context.next = 6;
               return this.fetchWithStream(url, readStream, 'PUT');
-            case 5:
+            case 6:
               response = _context.sent;
               this.handleFetchResponse(response);
-              uploadedUrl = this.constructCdnUrl(fileData.originalname);
+              uploadedUrl = this.constructCdnUrl(fileName);
               return _context.abrupt("return", {
                 url: uploadedUrl
               });
-            case 11:
-              _context.prev = 11;
+            case 12:
+              _context.prev = 12;
               _context.t0 = _context["catch"](0);
               throw new Error(_context.t0);
-            case 14:
+            case 15:
             case "end":
               return _context.stop();
           }
-        }, _callee, this, [[0, 11]]);
+        }, _callee, this, [[0, 12]]);
       }));
       function upload(_x) {
         return _upload.apply(this, arguments);
@@ -239,9 +244,6 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
       }
       return getDownloadStream;
     }() // Helper methods
-    // constructFileUrl(fileName) {
-    //   return `${this.options.storage.storageUploadEndPoint}/${this.options.storage.storageZoneName}/${this.options.storage.storagePath}/${fileName}`;
-    // }
   }, {
     key: "constructFileUrl",
     value: function constructFileUrl(fileName) {
@@ -249,10 +251,6 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
       var storagePath = this.options.storage.storagePath ? "".concat(this.options.storage.storagePath, "/") : '';
       return "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(storagePath).concat(fileName);
     }
-
-    // constructCdnUrl(fileName) {
-    //   return `${this.options.cdn.pullZoneEndPoint}/${this.options.storage.storagePath}/${fileName}`;
-    // }
   }, {
     key: "constructCdnUrl",
     value: function constructCdnUrl(fileName) {
@@ -301,6 +299,15 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
         throw new Error("Fetch error: ".concat(response.statusText));
       }
       return response;
+    }
+  }, {
+    key: "getUniqueFilename",
+    value: function getUniqueFilename(fileName) {
+      if (this.options.uniqueFilename) {
+        this.uniqueFilename = "".concat(Date.now(), "-").concat(fileName);
+        return this.uniqueFilename;
+      }
+      return fileName;
     }
   }]);
   return BunnyFileService;

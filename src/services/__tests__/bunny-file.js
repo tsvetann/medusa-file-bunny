@@ -14,6 +14,7 @@ let pluginOptions = {
   cdn: {
     pullZoneEndPoint: 'https://pullZoneEndPoint.net',
   },
+  uniqueFilename: false,
 };
 
 // Mocking the dependencies
@@ -118,6 +119,24 @@ describe('BunnyFileService', () => {
         return { on: jest.fn((event, handler) => handler(new Error('Stream failed'))) };
       });
       await expect(fileService.getDownloadStream({ fileKey: 'fileKey' })).rejects.toThrow();
+    });
+  });
+
+  describe('getUniqueFilename', () => {
+    let bunnyFileService = new BunnyFileService({}, { pluginOptions });
+
+    it('should return the original filename when uniqueFilename is false', () => {
+      const fileName = 'test.jpg';
+      expect(bunnyFileService.getUniqueFilename(fileName)).toBe(fileName);
+    });
+
+    it('should return a unique filename when uniqueFilename is true', () => {
+      bunnyFileService.options.uniqueFilename = true;
+      const fileName = 'test.jpg';
+      const uniqueFileName = bunnyFileService.getUniqueFilename(fileName);
+
+      expect(uniqueFileName).toContain('test.jpg');
+      expect(uniqueFileName).not.toBe(fileName);
     });
   });
 })
