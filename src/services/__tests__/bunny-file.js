@@ -45,10 +45,17 @@ describe('BunnyFileService', () => {
   });
 
   describe('upload', () => {
-    it('should upload a file and return the URL', async () => {
+    it('should upload a file and return the non-unique URL', async () => {
       fetch.mockResolvedValueOnce({ ok: true });
       const result = await fileService.upload(mockFileData);
       expect(result.url).toBe(`https://pullZoneEndPoint.net/storagePath/testfile.jpg`);
+    });
+
+    it('should upload a file and return the unique URL', async () => {
+      fetch.mockResolvedValueOnce({ ok: true });
+      fileService.options.uniqueFilename = true;
+      const result = await fileService.upload(mockFileData);
+      expect(result.url).not.toBe(`https://pullZoneEndPoint.net/storagePath/testfile.jpg`);
     });
 
     it('should throw an error if the upload fails', async () => {

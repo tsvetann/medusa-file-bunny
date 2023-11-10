@@ -1,6 +1,6 @@
 {
   "name": "medusa-file-bunny",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "bunny.net file connector for Medusa",
   "author": "Tsvetan Nikolov <live.webscore@gmail.com>",
   "license": "MIT",
