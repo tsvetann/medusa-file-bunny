@@ -21,6 +21,8 @@ var fs = _interopRequireWildcard(require("fs"));
 var _stream = _interopRequireDefault(require("stream"));
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function _getRequireWildcardCache(nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || _typeof(obj) !== "object" && typeof obj !== "function") { return { "default": obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj["default"] = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { (0, _defineProperty2["default"])(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
 function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = (0, _getPrototypeOf2["default"])(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = (0, _getPrototypeOf2["default"])(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return (0, _possibleConstructorReturn2["default"])(this, result); }; }
 function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Boolean.prototype.valueOf.call(Reflect.construct(Boolean, [], function () {})); return true; } catch (e) { return false; } }
 var fetch = require('node-fetch');
@@ -48,7 +50,9 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     (0, _objectDestructuringEmpty2["default"])(_ref);
     (0, _classCallCheck2["default"])(this, BunnyFileService);
     _this = _super.call(this);
-    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "options", {
+    // Add a property for storing the unique filename
+    (0, _defineProperty2["default"])((0, _assertThisInitialized2["default"])(_this), "lastUniqueFilename", null);
+    var config = {
       storage: {
         storageUploadEndPoint: process.env.BUNNY_STORAGE_UPLOAD_ENDPOINT,
         apiKey: process.env.BUNNY_API_KEY,
@@ -57,52 +61,46 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
       },
       cdn: {
         pullZoneEndPoint: process.env.BUNNY_PULLZONE_ENDPOINT
-      }
-    });
-    if (pluginOptions) {
-      _this.options = pluginOptions;
-    }
+      },
+      uniqueFilename: false
+    };
+    _this.options = _objectSpread(_objectSpread({}, config), pluginOptions);
     return _this;
   }
 
   // upload file to bunny cdn
+  // In summary, a correctly formatted upload URL should resemble: https://{region}.bunnycdn.com/{storageZoneName}/{path}/{fileName}
   // @ts-ignore
   (0, _createClass2["default"])(BunnyFileService, [{
     key: "upload",
     value: function () {
       var _upload = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee(fileData) {
-        var url, readStream, options, uploadedUrl;
+        var fileName, url, readStream, response, uploadedUrl;
         return _regenerator["default"].wrap(function _callee$(_context) {
           while (1) switch (_context.prev = _context.next) {
             case 0:
               _context.prev = 0;
-              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              fileName = this.getUniqueFilename(fileData.originalname);
+              url = this.constructFileUrl(fileName);
               readStream = fs.createReadStream(fileData.path);
-              options = {
-                method: 'PUT',
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  AccessKey: this.options.storage.apiKey
-                },
-                body: readStream
-              };
               _context.next = 6;
-              return fetch(url, options);
+              return this.fetchWithStream(url, readStream, 'PUT');
             case 6:
-              uploadedUrl = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
-              console.log(uploadedUrl);
+              response = _context.sent;
+              this.handleFetchResponse(response);
+              uploadedUrl = this.constructCdnUrl(fileName);
               return _context.abrupt("return", {
                 url: uploadedUrl
               });
-            case 11:
-              _context.prev = 11;
+            case 12:
+              _context.prev = 12;
               _context.t0 = _context["catch"](0);
               throw new Error(_context.t0);
-            case 14:
+            case 15:
             case "end":
               return _context.stop();
           }
-        }, _callee, this, [[0, 11]]);
+        }, _callee, this, [[0, 12]]);
       }));
       function upload(_x) {
         return _upload.apply(this, arguments);
@@ -113,32 +111,28 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "delete",
     value: function () {
       var _delete2 = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee2(fileData) {
-        var url, options;
+        var url, response;
         return _regenerator["default"].wrap(function _callee2$(_context2) {
           while (1) switch (_context2.prev = _context2.next) {
             case 0:
               _context2.prev = 0;
-              url = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.file_key);
-              options = {
-                method: 'DELETE',
-                headers: {
-                  AccessKey: this.options.storage.apiKey
-                }
-              };
-              _context2.next = 5;
-              return fetch(url, options);
-            case 5:
-              _context2.next = 10;
+              url = this.constructFileUrl(fileData.file_key);
+              _context2.next = 4;
+              return fetch(url, this.createFetchOptions('DELETE'));
+            case 4:
+              response = _context2.sent;
+              this.handleFetchResponse(response);
+              _context2.next = 11;
               break;
-            case 7:
-              _context2.prev = 7;
+            case 8:
+              _context2.prev = 8;
               _context2.t0 = _context2["catch"](0);
-              throw new Error(_context2.t0);
-            case 10:
+              throw _context2.t0;
+            case 11:
             case "end":
               return _context2.stop();
           }
-        }, _callee2, this, [[0, 7]]);
+        }, _callee2, this, [[0, 8]]);
       }));
       function _delete(_x2) {
         return _delete2.apply(this, arguments);
@@ -149,26 +143,19 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "getUploadStreamDescriptor",
     value: function () {
       var _getUploadStreamDescriptor = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee3(_ref2) {
-        var name, ext, _ref2$isPrivate, isPrivate, filePath, downloadFilePath, pass, options;
+        var name, ext, fileName, filePath, downloadFilePath, pass;
         return _regenerator["default"].wrap(function _callee3$(_context3) {
           while (1) switch (_context3.prev = _context3.next) {
             case 0:
-              name = _ref2.name, ext = _ref2.ext, _ref2$isPrivate = _ref2.isPrivate, isPrivate = _ref2$isPrivate === void 0 ? true : _ref2$isPrivate;
-              filePath = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(name, ".").concat(ext);
-              downloadFilePath = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(name, ".").concat(ext);
+              name = _ref2.name, ext = _ref2.ext;
+              fileName = "".concat(name, ".").concat(ext);
+              filePath = this.constructFileUrl(fileName);
+              downloadFilePath = this.constructCdnUrl(fileName);
               pass = new _stream["default"].PassThrough();
-              options = {
-                method: 'PUT',
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  AccessKey: this.options.storage.apiKey
-                },
-                body: pass
-              };
               return _context3.abrupt("return", {
                 writeStream: pass,
-                promise: fetch(filePath, options),
-                url: "".concat(downloadFilePath),
+                promise: fetch(filePath, this.createFetchOptions('PUT', pass)),
+                url: downloadFilePath,
                 fileKey: downloadFilePath
               });
             case 6:
@@ -207,30 +194,21 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "uploadProtected",
     value: function () {
       var _uploadProtected = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee5(fileData) {
-        var filePath, readStream, options, uploadedUrl;
+        var filePath, readStream, uploadedUrl;
         return _regenerator["default"].wrap(function _callee5$(_context5) {
           while (1) switch (_context5.prev = _context5.next) {
             case 0:
-              // const filePath = `${this.protectedPath}/${fileData.originalname}`
-              filePath = "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              filePath = this.constructFileUrl(fileData.originalname);
               readStream = fs.createReadStream(fileData.path);
-              options = {
-                method: 'PUT',
-                headers: {
-                  'content-type': 'application/octet-stream',
-                  AccessKey: this.options.storage.apiKey
-                },
-                body: readStream
-              };
-              _context5.next = 5;
-              return fetch(filePath, options);
-            case 5:
-              uploadedUrl = "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(this.options.storage.storagePath, "/").concat(fileData.originalname);
+              _context5.next = 4;
+              return fetch(filePath, this.createFetchOptions('PUT', readStream));
+            case 4:
+              uploadedUrl = this.constructCdnUrl(fileData.originalname);
               return _context5.abrupt("return", {
                 url: "".concat(uploadedUrl),
                 key: "".concat(uploadedUrl)
               });
-            case 7:
+            case 6:
             case "end":
               return _context5.stop();
           }
@@ -245,11 +223,11 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
     key: "getDownloadStream",
     value: function () {
       var _getDownloadStream = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee6(_ref4) {
-        var fileKey, _ref4$isPrivate, isPrivate, readStream;
+        var fileKey, readStream;
         return _regenerator["default"].wrap(function _callee6$(_context6) {
           while (1) switch (_context6.prev = _context6.next) {
             case 0:
-              fileKey = _ref4.fileKey, _ref4$isPrivate = _ref4.isPrivate, isPrivate = _ref4$isPrivate === void 0 ? true : _ref4$isPrivate;
+              fileKey = _ref4.fileKey;
               _context6.next = 3;
               return getReadStreamFromCDN(fileKey);
             case 3:
@@ -265,7 +243,72 @@ var BunnyFileService = /*#__PURE__*/function (_FileService) {
         return _getDownloadStream.apply(this, arguments);
       }
       return getDownloadStream;
+    }() // Helper methods
+  }, {
+    key: "constructFileUrl",
+    value: function constructFileUrl(fileName) {
+      // Check if storagePath is defined and not empty
+      var storagePath = this.options.storage.storagePath ? "".concat(this.options.storage.storagePath, "/") : '';
+      return "".concat(this.options.storage.storageUploadEndPoint, "/").concat(this.options.storage.storageZoneName, "/").concat(storagePath).concat(fileName);
+    }
+  }, {
+    key: "constructCdnUrl",
+    value: function constructCdnUrl(fileName) {
+      // Check if storagePath is defined and not empty
+      var storagePath = this.options.storage.storagePath ? "".concat(this.options.storage.storagePath, "/") : '';
+      return "".concat(this.options.cdn.pullZoneEndPoint, "/").concat(storagePath).concat(fileName);
+    }
+  }, {
+    key: "createFetchOptions",
+    value: function createFetchOptions(method) {
+      var body = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+      return {
+        method: method,
+        headers: {
+          'content-type': 'application/octet-stream',
+          AccessKey: this.options.storage.apiKey
+        },
+        body: body
+      };
+    }
+  }, {
+    key: "fetchWithStream",
+    value: function () {
+      var _fetchWithStream = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee7(url, stream, method) {
+        var options;
+        return _regenerator["default"].wrap(function _callee7$(_context7) {
+          while (1) switch (_context7.prev = _context7.next) {
+            case 0:
+              options = this.createFetchOptions(method, stream);
+              return _context7.abrupt("return", fetch(url, options));
+            case 2:
+            case "end":
+              return _context7.stop();
+          }
+        }, _callee7, this);
+      }));
+      function fetchWithStream(_x7, _x8, _x9) {
+        return _fetchWithStream.apply(this, arguments);
+      }
+      return fetchWithStream;
     }()
+  }, {
+    key: "handleFetchResponse",
+    value: function handleFetchResponse(response) {
+      if (!response.ok) {
+        throw new Error("Fetch error: ".concat(response.statusText));
+      }
+      return response;
+    }
+  }, {
+    key: "getUniqueFilename",
+    value: function getUniqueFilename(fileName) {
+      if (this.options.uniqueFilename) {
+        this.uniqueFilename = "".concat(Date.now(), "-").concat(fileName);
+        return this.uniqueFilename;
+      }
+      return fileName;
+    }
   }]);
   return BunnyFileService;
 }(_medusaInterfaces.FileService);
